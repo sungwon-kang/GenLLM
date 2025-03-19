@@ -4,17 +4,14 @@ import numpy as np
 import re
 
 def clean_string(s):
-    # 정규 표현식을 사용하여 'A'로 시작하는 문장 추출
     s=s.strip()
 
     s = re.sub(r'[^\w\s]', '', s)
 
     if s.startswith("답변"):
-        # "A:" 삭제
         s = re.sub(r'^답변 \s*', '', s)
 
     if s.startswith("A"):
-        # "A:" 삭제
         s = re.sub(r'^A \s*', '', s)
 
     s = s.strip()
