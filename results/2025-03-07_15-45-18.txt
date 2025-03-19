@@ -1,0 +1,11 @@
+﻿Argument Parser Settings:
+model: Llama_8B
+batch_size: 16
+val_size: 0.001
+temp: 0.1
+train: True
+Q_method: bnb
+k: 7
+
+Mean Scores:
+0.5693288
