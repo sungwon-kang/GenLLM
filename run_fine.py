@@ -55,7 +55,7 @@ def save_result(current_time, args, mean_scores):
 
     print(f"Results saved to {filename}")
 
-# ✅ PyTorch Dataset 클래스를 정의하여 토큰화된 데이터를 Dataset으로 변환
+# PyTorch Dataset 클래스를 정의하여 토큰화된 데이터를 Dataset으로 변환
 class TextDataset(torch.utils.data.Dataset):
     def __init__(self, encodings, labels):
         self.encodings = encodings
@@ -66,25 +66,25 @@ class TextDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
-        item["labels"] = torch.tensor(self.labels["input_ids"][idx]).squeeze().float()  # ✅ 차원 조정
+        item["labels"] = torch.tensor(self.labels["input_ids"][idx]).squeeze().float()
         return item
 
 def tokenize_function(tokenizer, texts, seq_length):
     return tokenizer(texts.tolist(), padding="max_length", truncation=True, max_length=seq_length)
 
 class CustomTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):  # ✅ 추가 인자 **kwargs
-        labels = inputs.pop("labels")  # ✅ 정답 추출
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        labels = inputs.pop("labels") 
         outputs = model(**inputs)
-        logits = outputs.logits  # ✅ 모델 예측값
+        logits = outputs.logits
 
-        # ✅ 차원 정렬 (Cosine Similarity를 위해)
+        # 차원 정렬 (Cosine Similarity를 위해)
         logits = logits.view(logits.shape[0], -1)  # 배치 차원 유지
         labels = labels.view(labels.shape[0], -1)
 
-        # ✅ Cosine Similarity 기반 Loss 적용
+        # Cosine Similarity 기반 Loss 적용
         cosine_loss = nn.CosineEmbeddingLoss()
-        target = torch.ones(logits.shape[0]).to(logits.device)  # ✅ 긍정적인 유사도 학습
+        target = torch.ones(logits.shape[0]).to(logits.device)
         loss = cosine_loss(logits, labels, target)
 
         return (loss, outputs) if return_outputs else loss
@@ -114,7 +114,7 @@ def import_model(train, model_id, args):
     train_dataset = TextDataset(train_encodings, train_labels)
     val_dataset = TextDataset(val_encodings, val_labels)
 
-    # ✅ 3. 모델 파인 튜닝 설정
+    # 3. 모델 파인 튜닝 설정
     bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
@@ -138,7 +138,7 @@ def import_model(train, model_id, args):
         tokenizer=tokenizer,
         mlm=False  # GPT 모델은 Masked LM(MLM)이 아닌 Causal LM을 사용하므로 False 설정
     )
-    # ✅ 3. 학습 설정 (Trainer 사용)
+    # 3. 학습 설정 (Trainer 사용)
     training_args = TrainingArguments(
         output_dir="./results",
         evaluation_strategy="epoch",
@@ -150,29 +150,29 @@ def import_model(train, model_id, args):
         save_total_limit=2,
         logging_dir="./logs",
         logging_steps=10,
-        #fp16=True,  # ✅ FP16 사용 시 안정성 유지
+        #fp16=True,  
         optim="adamw_hf",
         lr_scheduler_type="linear",
         learning_rate=2e-5,
         warmup_steps=100,
-        max_grad_norm=1.0,  # ✅ Gradient Clipping 추가
+        max_grad_norm=1.0,
     )
 
-    model.gradient_checkpointing_enable()  # ✅ VRAM 절약
+    model.gradient_checkpointing_enable()  
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
-        data_collator=data_collator,  # ✅ 데이터 콜레이터 추가
+        data_collator=data_collator, 
     )
 
     print("Fine-Tuning Model...")
     trainer.train()
 
     # 학습이 끝난 후 모델 저장
-    trainer.save_model(f"./model_save/fine_tuned_model")  # ✅ 모델 저장
-    tokenizer.save_pretrained(f"./model_save/fine_tuned_model")  # ✅ 토크나이저 저장
+    trainer.save_model(f"./model_save/fine_tuned_model")  
+    tokenizer.save_pretrained(f"./model_save/fine_tuned_model")  
     # # 모델 로드
     # model = AutoModelForCausalLM.from_pretrained("./fine_tuned_model")
     # tokenizer = AutoTokenizer.from_pretrained("./fine_tuned_model")
